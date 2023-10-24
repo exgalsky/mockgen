@@ -3,7 +3,7 @@ import sys
 import os
 import gc
 import mockgen.defaults as mgdefaults
-import xgutil.log_utils as xglutil
+import xgutil.log_utils as xglogutil
 from time import time
 
 import jax.numpy as jnp 
@@ -44,19 +44,19 @@ class Sky:
         else:
             jax.distributed.initialize()
             cube = lpt.Cube(N=self.N)
-        times = xglutil.profiletime(None, 'initialization', times, comm, mpiproc)
+        times = xglogutil.profiletime(None, 'initialization', times, comm, mpiproc)
 
         #### NOISE GENERATION
         delta = cube.generate_noise(seed=self.seed)
-        times = xglutil.profiletime(None, 'noise generation', times, comm, mpiproc)
+        times = xglogutil.profiletime(None, 'noise generation', times, comm, mpiproc)
 
         #### NOISE CONVOLUTION TO OBTAIN DELTA
         delta = cube.noise2delta(delta)
-        times = xglutil.profiletime(None, 'noise convolution', times, comm, mpiproc)
+        times = xglogutil.profiletime(None, 'noise convolution', times, comm, mpiproc)
 
         #### 2LPT DISPLACEMENTS FROM EXTERNAL (WEBSKY AT 768^3) DENSITY CONTRAST
         cube.slpt(infield=self.ityp,delta=delta)
-        times = xglutil.profiletime(None, '2LPT', times, comm, mpiproc)
+        times = xglogutil.profiletime(None, '2LPT', times, comm, mpiproc)
 
         # # LPT displacements are now in
         # #   cube.s1x
