@@ -1,4 +1,5 @@
 import sys
+from time import time
 
 MockgenDefaults = {
     "ID"   : "Mockgen Default ID",

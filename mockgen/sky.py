@@ -21,8 +21,6 @@ class Sky:
 
         times={'t0' : time()}
 
-        mockutil.parprint(f'Running Sky.generate for model {self.ID}')
-
         import mockgen
         import jax
         import lpt
@@ -37,26 +35,27 @@ class Sky:
 
         if MPI.COMM_WORLD.Get_size() > 1: parallel = True
 
-        return 0
+        if mpiproc == 0:
+            print(f'\nRunning Sky.generate for model "{self.ID}" on {nproc} MPI processes\n')
 
-        # if not parallel:
-        #     cube = lpt.Cube(N=N,partype=None)
-        # else:
-        #     jax.distributed.initialize()
-        #     cube = lpt.Cube(N=N)
-        # times = mockutil.profiletime(None, 'initialization', times, comm, mpiproc)
+        if not parallel:
+            cube = lpt.Cube(N=self.N,partype=None)
+        else:
+            jax.distributed.initialize()
+            cube = lpt.Cube(N=self.N)
+        times = mockutil.profiletime(None, 'initialization', times, comm, mpiproc)
 
-        # #### NOISE GENERATION
-        # delta = cube.generate_noise(seed=seed)
-        # times = mockutil.profiletime(None, 'noise generation', times, comm, mpiproc)
+        #### NOISE GENERATION
+        delta = cube.generate_noise(seed=self.seed)
+        times = mockutil.profiletime(None, 'noise generation', times, comm, mpiproc)
 
-        # #### NOISE CONVOLUTION TO OBTAIN DELTA
-        # delta = cube.noise2delta(delta)
-        # times = mockutil.profiletime(None, 'noise convolution', times, comm, mpiproc)
+        #### NOISE CONVOLUTION TO OBTAIN DELTA
+        delta = cube.noise2delta(delta)
+        times = mockutil.profiletime(None, 'noise convolution', times, comm, mpiproc)
 
-        # #### 2LPT DISPLACEMENTS FROM EXTERNAL (WEBSKY AT 768^3) DENSITY CONTRAST
-        # cube.slpt(infield=ityp,delta=delta)
-        # times = mockutil.profiletime(None, '2LPT', times, comm, mpiproc)
+        #### 2LPT DISPLACEMENTS FROM EXTERNAL (WEBSKY AT 768^3) DENSITY CONTRAST
+        cube.slpt(infield=self.ityp,delta=delta)
+        times = mockutil.profiletime(None, '2LPT', times, comm, mpiproc)
 
         # # LPT displacements are now in
         # #   cube.s1x
@@ -67,5 +66,7 @@ class Sky:
         # #   cube.s2y
         # #   cube.s2z
 
-        # return 0
+        if mpiproc == 0:
+            print(f'Mock sky pipeline after 2LPT is not yet implemented, returning...\n')
+        return 0
 
