@@ -2,7 +2,8 @@ import jax
 import sys
 import os
 import gc
-import mockgen.util as mockutil
+import mockgen.defaults as mgdefaults
+import xgutil.log_utils as xglutil
 from time import time
 
 import jax.numpy as jnp 
@@ -12,10 +13,10 @@ class Sky:
     '''Sky'''
     def __init__(self, **kwargs):
 
-        self.ID   = kwargs.get(  'ID',mockutil.MockgenDefaults['ID'])
-        self.N    = kwargs.get(   'N',mockutil.MockgenDefaults['N'])
-        self.seed = kwargs.get('seed',mockutil.MockgenDefaults['seed'])
-        self.ityp = kwargs.get('ityp',mockutil.MockgenDefaults['ityp'])
+        self.ID   = kwargs.get(  'ID',mgdefaults.ID)
+        self.N    = kwargs.get(   'N',mgdefaults.N)
+        self.seed = kwargs.get('seed',mgdefaults.seed)
+        self.ityp = kwargs.get('ityp',mgdefaults.ityp)
 
     def generate(self, **kwargs):
 
@@ -43,19 +44,19 @@ class Sky:
         else:
             jax.distributed.initialize()
             cube = lpt.Cube(N=self.N)
-        times = mockutil.profiletime(None, 'initialization', times, comm, mpiproc)
+        times = xglutil.profiletime(None, 'initialization', times, comm, mpiproc)
 
         #### NOISE GENERATION
         delta = cube.generate_noise(seed=self.seed)
-        times = mockutil.profiletime(None, 'noise generation', times, comm, mpiproc)
+        times = xglutil.profiletime(None, 'noise generation', times, comm, mpiproc)
 
         #### NOISE CONVOLUTION TO OBTAIN DELTA
         delta = cube.noise2delta(delta)
-        times = mockutil.profiletime(None, 'noise convolution', times, comm, mpiproc)
+        times = xglutil.profiletime(None, 'noise convolution', times, comm, mpiproc)
 
         #### 2LPT DISPLACEMENTS FROM EXTERNAL (WEBSKY AT 768^3) DENSITY CONTRAST
         cube.slpt(infield=self.ityp,delta=delta)
-        times = mockutil.profiletime(None, '2LPT', times, comm, mpiproc)
+        times = xglutil.profiletime(None, '2LPT', times, comm, mpiproc)
 
         # # LPT displacements are now in
         # #   cube.s1x
