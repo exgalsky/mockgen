@@ -2,7 +2,7 @@ import jax
 import sys
 import os
 import gc
-import mockgen.defaults as mgdefaults
+import mockgen.defaults as mgd
 import xgutil.log_utils as xglogutil
 from time import time
 
@@ -13,10 +13,11 @@ class Sky:
     '''Sky'''
     def __init__(self, **kwargs):
 
-        self.ID   = kwargs.get(  'ID',mgdefaults.ID)
-        self.N    = kwargs.get(   'N',mgdefaults.N)
-        self.seed = kwargs.get('seed',mgdefaults.seed)
-        self.ityp = kwargs.get('ityp',mgdefaults.ityp)
+        self.ID       = kwargs.get(      'ID',mgd.ID)
+        self.N        = kwargs.get(       'N',mgd.N)
+        self.seed     = kwargs.get(    'seed',mgd.seed)
+        self.input    = kwargs.get(   'input',mgd.input)
+        self.laststep = kwargs.get('laststep',mgd.laststep)
 
     def generate(self, **kwargs):
 
@@ -45,19 +46,27 @@ class Sky:
             jax.distributed.initialize()
             cube = lpt.Cube(N=self.N)
         times = xglogutil.profiletime(None, 'initialization', times, comm, mpiproc)
+        if self.laststep == 'init':
+            return 0
 
         #### NOISE GENERATION
         delta = cube.generate_noise(seed=self.seed)
         times = xglogutil.profiletime(None, 'noise generation', times, comm, mpiproc)
+        if self.laststep == 'noise':
+            return 0
 
         #### NOISE CONVOLUTION TO OBTAIN DELTA
         delta = cube.noise2delta(delta)
         times = xglogutil.profiletime(None, 'noise convolution', times, comm, mpiproc)
+        if self.laststep == 'convolution':
+            return 0
 
-        #### 2LPT DISPLACEMENTS FROM EXTERNAL (WEBSKY AT 768^3) DENSITY CONTRAST
-        cube.slpt(infield=self.ityp,delta=delta)
+        #### LPT DISPLACEMENTS FROM EXTERNAL (WEBSKY AT 768^3) DENSITY CONTRAST
+        cube.slpt(infield=self.input,delta=delta)
         times = xglogutil.profiletime(None, '2LPT', times, comm, mpiproc)
-
+        if self.laststep == 'lpt':
+            return 0
+    
         # # LPT displacements are now in
         # #   cube.s1x
         # #   cube.s1y

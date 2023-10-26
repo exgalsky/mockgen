@@ -19,12 +19,12 @@ def main():
 
     args = parser.parse_args()
 
-    N    = args.N
-    seed = args.seed
-    ityp = args.ityp
-    ID   = args.modelID
+    N     = args.N
+    seed  = args.seed
+    input = args.input
+    ID    = args.modelID
 
-    mocksky = mockgen.Sky(ID=ID,N=N,seed=seed,ityp=ityp)
+    mocksky = mockgen.Sky(ID=ID,N=N,seed=seed,input=input)
 
     return mocksky.generate()
 
