@@ -1,5 +1,9 @@
-ID       = "Mockgen Default ID"
+ID       = "MockgenDefaultID"
 N        = 512
 seed     = 13579
 input    = "delta"
+Lbox     = 7700.
+Nside    = 1024
 laststep = "all"
+gpu      = True
+mpi      = True

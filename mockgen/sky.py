@@ -1,13 +1,12 @@
-import jax
 import sys
 import os
-import gc
 import mockgen.defaults as mgd
-import xgutil.log_utils as xglogutil
-from time import time
 
-import jax.numpy as jnp 
-import jax.random as rnd
+def _test_transfer():
+    import jax.numpy as jnp
+    k  = jnp.logspace(-3,2,1000)
+    pk = jnp.sqrt(1e5 * (k/1e-2) * ((1+(k/1e-2)**2)/2)**-4) # something reasonable for testing purposes
+    return jnp.asarray([k,pk]).T
 
 class Sky:
     '''Sky'''
@@ -17,16 +16,22 @@ class Sky:
         self.N        = kwargs.get(       'N',mgd.N)
         self.seed     = kwargs.get(    'seed',mgd.seed)
         self.input    = kwargs.get(   'input',mgd.input)
+        self.Lbox     = kwargs.get(    'Lbox',mgd.Lbox)
         self.laststep = kwargs.get('laststep',mgd.laststep)
+        self.Nside    = kwargs.get(   'Nside',mgd.Nside)
+        self.gpu      = kwargs.get(     'gpu',mgd.gpu)
+        self.mpi      = kwargs.get(     'mpi',mgd.mpi)
 
     def generate(self, **kwargs):
-
+        from time import time
+        import datetime
         times={'t0' : time()}
 
-        import mockgen
         import jax
         import lpt
+        from xgfield import fieldsky
         from mpi4py import MPI
+        import xgutil.log_util as xglogutil
         jax.config.update("jax_enable_x64", True)
 
         parallel = False
@@ -38,7 +43,7 @@ class Sky:
         if MPI.COMM_WORLD.Get_size() > 1: parallel = True
 
         if mpiproc == 0:
-            print(f'\nRunning Sky.generate for model "{self.ID}" on {nproc} MPI processes\n')
+            xglogutil.parprint(f'\nRunning Sky.generate for model "{self.ID}" on {nproc} MPI processes\n')
 
         if not parallel:
             cube = lpt.Cube(N=self.N,partype=None)
@@ -56,7 +61,7 @@ class Sky:
             return 0
 
         #### NOISE CONVOLUTION TO OBTAIN DELTA
-        delta = cube.noise2delta(delta)
+        delta = cube.noise2delta(delta,_test_transfer())
         times = xglogutil.profiletime(None, 'noise convolution', times, comm, mpiproc)
         if self.laststep == 'convolution':
             return 0
@@ -76,7 +81,17 @@ class Sky:
         # #   cube.s2y
         # #   cube.s2z
 
-        if mpiproc == 0:
-            print(f'Mock sky pipeline after 2LPT is not yet implemented, returning...\n')
+        lptsky = fieldsky.FieldSky(ID = self.ID,
+                                   N  = self.N,
+                                 Lbox = self.Lbox,
+                                Nside = self.Nside,
+                                input = cube,
+                                  gpu = self.gpu,
+                                  mpi = self.mpi,
+                                 cube = cube)
+
+        lptsky.generate()
+        times = xglogutil.profiletime(None, 'field mapping', times, comm, mpiproc)
+
         return 0
 

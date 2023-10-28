@@ -9,7 +9,7 @@ setup(name=pname,
       packages=[pname],
       entry_points ={ 
         'console_scripts': [ 
-          'xgmockgen = mockgen.command_line_interface:main'
+          'mockgen = mockgen.command_line_interface:main'
         ]
       }, 
       zip_safe=False)

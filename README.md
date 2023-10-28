@@ -16,18 +16,18 @@ Mocks can be generated through the command line interface:
 % module load xgsmenv
 % salloc -N 1 -C gpu
 % export XGSMENV_NGPUS=4
-% srun -n 4 xgmockgen "mockgen test-512" --N 512 --seed 13579 --ityp delta
+% srun -n 4 mockgen mockgen-test
 
-Running Sky.generate for model "mockgen test-512" on 4 MPI processes
+Running Sky.generate for model "mockgen-test" on 4 MPI processes
 
-1.998147 sec for initialization
+13.234693 sec for initialization
 
-2.314237 sec for noise generation
+3.070061 sec for noise generation
 
-2.649199 sec for noise convolution
+5.516870 sec for noise convolution
 
-6.202100 sec for 2LPT
+5.704113 sec for 2LPT
 
-Mock sky pipeline after 2LPT is not yet implemented, returning...
+28.663420 sec for field mapping
 
 ```
