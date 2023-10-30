@@ -1,6 +1,7 @@
 ID       = "MockgenDefaultID"
-N        = 512
 seed     = 13579
+N        = 512
+Niter    = 1
 input    = "delta"
 Lbox     = 7700.
 Nside    = 1024

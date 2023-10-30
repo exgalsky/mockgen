@@ -13,8 +13,9 @@ def main():
     parser = argparse.ArgumentParser(description='Commandline interface to mockgen')
 
     parser.add_argument('ID',                            help=f'model ID [{mgd.ID}]',            type=str)
-    parser.add_argument('--N',        default=mgd.N,     help=f'grid dimension [{mgd.N}]',       type=int)
     parser.add_argument('--seed',     default=mgd.seed,  help=f'seed [{mgd.seed}]',              type=int)
+    parser.add_argument('--N',        default=mgd.N,     help=f'grid dimension [{mgd.N}]',       type=int)
+    parser.add_argument('--Niter',    default=mgd.Niter, help=f'# of iterations [{mgd.Niter}]',  type=int)
     parser.add_argument('--input',    default=mgd.input, help=f'input type [{mgd.input}]',       type=str)
     parser.add_argument('--Lbox',     default=mgd.Lbox,  help=f'box size in Mpc [{mgd.Lbox}]',   type=int)
     parser.add_argument('--Nside',    default=mgd.Nside, help=f'healpix Nside [{mgd.Nside}]',    type=int)
@@ -25,8 +26,9 @@ def main():
     args = parser.parse_args()
 
     mocksky = mockgen.Sky(ID = args.ID,
-                           N = args.N,
                         seed = args.seed,
+                           N = args.N,
+                       Niter = args.Niter,
                         Lbox = args.Lbox,
                        input = args.input,
                     laststep = args.laststep,
@@ -34,7 +36,7 @@ def main():
                          gpu = args.gpu,
                          mpi = args.mpi)
 
-    errcount += mocksky.generate()
+    errcount += mocksky.run()
 
     return errcount
 
