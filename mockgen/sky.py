@@ -1,13 +1,10 @@
 import sys
 import os
+import logging
 import mockgen.defaults as mgd
+import xgcosmo.cosmology as xgc
 import xgutil.log_util as xglogutil
-
-def _test_transfer():
-    import jax.numpy as jnp
-    k  = jnp.logspace(-3,2,1000)
-    pk = jnp.sqrt(1e5 * (k/1e-2) * ((1+(k/1e-2)**2)/2)**-4) # something reasonable for testing purposes
-    return jnp.asarray([k,pk]).T
+import xgutil.backend  as xgback
 
 class Sky:
     '''Sky'''
@@ -23,6 +20,8 @@ class Sky:
         self.Nside    = kwargs.get(   'Nside',mgd.Nside)
         self.gpu      = kwargs.get(     'gpu',mgd.gpu)
         self.mpi      = kwargs.get(     'mpi',mgd.mpi)
+        self.h        = kwargs.get(       'h',mgd.h)
+        self.omegam   = kwargs.get(  'omegam',mgd.omegam)
 
         from mpi4py import MPI
 
@@ -33,6 +32,13 @@ class Sky:
         self.task_tag = "MPI process "+str(self.mpiproc)
 
         if MPI.COMM_WORLD.Get_size() > 1: self.parallel = True
+
+    def get_transfer_array(self,cosmo_wsp):
+        import numpy as np
+        k = np.logspace(-3,1,1000)
+        pk = cosmo_wsp.matter_power(k) / self.h**3 # convert power spectrum units from (Mpc/h)^3 to Mpc^3
+        tk = np.sqrt(pk)
+        return np.asarray([k,tk]).T
 
     def run(self, **kwargs):
         import jax
@@ -86,7 +92,9 @@ class Sky:
             logging.root.removeHandler(handler)
 
         #### NOISE CONVOLUTION TO OBTAIN DELTA
-        delta = cube.noise2delta(delta,_test_transfer())
+        backend = xgback.Backend(force_no_gpu=True,force_no_mpi=True,logging_level=-logging.ERROR)
+        cosmo_wsp = xgc.cosmology(backend, h=self.h, Omega_m=self.omegam, cosmo_backend='CAMB') # for background expansion consistent with websky
+        delta = cube.noise2delta(delta,self.get_transfer_array(cosmo_wsp))
         times = xglogutil.profiletime(None, 'noise convolution', times, self.comm, self.mpiproc)
         if self.laststep == 'convolution':
             return 0
@@ -119,7 +127,8 @@ class Sky:
                                 input = "cube",
                                   gpu = self.gpu,
                                   mpi = self.mpi,
-                                 cube = cube)
+                                 cube = cube,
+                                 cwsp = cosmo_wsp)
 
         lptsky.generate()
         times = xglogutil.profiletime(None, 'field mapping', times, self.comm, self.mpiproc)
