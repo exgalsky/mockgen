@@ -33,12 +33,14 @@ class Sky:
 
         if MPI.COMM_WORLD.Get_size() > 1: self.parallel = True
 
-    def get_transfer_array(self,cosmo_wsp):
+    def get_power_array(self,cosmo_wsp):
         import numpy as np
         k = np.logspace(-3,1,1000)
-        pk = cosmo_wsp.matter_power(k) / self.h**3 # convert power spectrum units from (Mpc/h)^3 to Mpc^3
-        tk = np.sqrt(pk)
-        return np.asarray([k,tk]).T
+        pk = cosmo_wsp.matter_power(k)
+        pk /= self.h**3 # convert power spectrum units from (Mpc/h)^3 to Mpc^3
+        k  *= self.h    # convert wavenumber units from h/Mpc to 1/Mpc
+        result = np.asarray([k,pk])
+        return result
 
     def run(self, **kwargs):
         import jax
@@ -47,10 +49,10 @@ class Sky:
         times={'t0' : time()}
 
         if not self.parallel:
-            cube = lpt.Cube(N=self.N,partype=None)
+            cube = lpt.Cube(N=self.N,Lbox=self.Lbox,partype=None)
         else:
             jax.distributed.initialize()
-            cube = lpt.Cube(N=self.N)
+            cube = lpt.Cube(N=self.N,Lbox=self.Lbox)
         if self.laststep == 'init':
             return 0
         
@@ -94,7 +96,8 @@ class Sky:
         #### NOISE CONVOLUTION TO OBTAIN DELTA
         backend = xgback.Backend(force_no_gpu=True,force_no_mpi=True,logging_level=-logging.ERROR)
         cosmo_wsp = xgc.cosmology(backend, h=self.h, Omega_m=self.omegam, cosmo_backend='CAMB') # for background expansion consistent with websky
-        delta = cube.noise2delta(delta,self.get_transfer_array(cosmo_wsp))
+        pofk = self.get_power_array(cosmo_wsp)
+        delta = cube.noise2delta(delta,pofk)
         times = xglogutil.profiletime(None, 'noise convolution', times, self.comm, self.mpiproc)
         if self.laststep == 'convolution':
             return 0
