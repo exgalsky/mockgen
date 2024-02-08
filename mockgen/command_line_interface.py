@@ -19,6 +19,7 @@ def main():
     parser.add_argument('--input',    default=mgd.input, help=f'input type [{mgd.input}]',       type=str)
     parser.add_argument('--Lbox',     default=mgd.Lbox,  help=f'box size in Mpc [{mgd.Lbox}]',   type=int)
     parser.add_argument('--Nside',    default=mgd.Nside, help=f'healpix Nside [{mgd.Nside}]',    type=int)
+    parser.add_argument('--nlpt',     default=mgd.nlpt,  help=f'lpt order [{mgd.nlpt}]',         type=int)
     parser.add_argument('--laststep', default=mgd.laststep, help=f'input type [{mgd.laststep}]', type=str)
     parser.add_argument('--gpu',      default=mgd.gpu,   help=f'use GPU [{mgd.gpu}]', action=argparse.BooleanOptionalAction)
     parser.add_argument('--mpi',      default=mgd.mpi,   help=f'use MPI [{mgd.mpi}]', action=argparse.BooleanOptionalAction)
@@ -33,6 +34,7 @@ def main():
                        input = args.input,
                     laststep = args.laststep,
                        Nside = args.Nside,
+                        nlpt = args.nlpt,
                          gpu = args.gpu,
                          mpi = args.mpi)
 

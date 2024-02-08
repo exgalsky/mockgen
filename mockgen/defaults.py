@@ -5,6 +5,7 @@ Niter    = 1
 input    = "delta"
 Lbox     = 7700.
 Nside    = 1024
+lpt      = 2
 laststep = "all"
 gpu      = True
 mpi      = True
