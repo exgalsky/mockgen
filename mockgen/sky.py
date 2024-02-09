@@ -120,6 +120,7 @@ class Sky:
                                    N  = self.N,
                                  Lbox = self.Lbox,
                                 Nside = self.Nside,
+                                 nlpt = self.nlpt,
                                 input = "cube",
                                   gpu = self.gpu,
                                   mpi = self.mpi,
