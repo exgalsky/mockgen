@@ -35,6 +35,7 @@ def main():
                     laststep = args.laststep,
                        Nside = args.Nside,
                          icw = args.icw,
+                        nlpt = args.nlpt,
                          gpu = args.gpu,
                          mpi = args.mpi)
 

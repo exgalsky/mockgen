@@ -21,6 +21,7 @@ class Sky:
         self.laststep = kwargs.get('laststep',mgd.laststep)
         self.Nside    = kwargs.get(   'Nside',mgd.Nside)
         self.icw      = kwargs.get(     'icw',mgd.icw)
+        self.nlpt     = kwargs.get(    'nlpt',mgd.nlpt)
         self.gpu      = kwargs.get(     'gpu',mgd.gpu)
         self.mpi      = kwargs.get(     'mpi',mgd.mpi)
         self.h        = kwargs.get(       'h',mgd.h)
@@ -109,7 +110,8 @@ class Sky:
             logging.root.removeHandler(handler)
                 
         #### LPT DISPLACEMENTS FROM DENSITY CONTRAST
-        cube.slpt(infield=self.input,delta=delta) # s1 and s2 in cube.[s1x,s1y,s1z,s2x,s2y,s2z]
+        if self.nlpt > 0:
+            cube.slpt(infield=self.input,delta=delta) # s1 and s2 in cube.[s1x,s1y,s1z,s2x,s2y,s2z]
         times = xglogutil.profiletime(None, '2LPT', times, self.comm, self.mpiproc)
 
         #### WRITE INITIAL CONDITIONS
@@ -128,6 +130,7 @@ class Sky:
                                    N  = self.N,
                                  Lbox = self.Lbox,
                                 Nside = self.Nside,
+                                 nlpt = self.nlpt,
                                 input = "cube",
                                   gpu = self.gpu,
                                   mpi = self.mpi,
