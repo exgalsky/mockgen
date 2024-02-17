@@ -114,9 +114,9 @@ class Sky:
 
         #### WRITE INITIAL CONDITIONS
         if self.icw:
-            ics = mockgen.ICs(self,cosmo,cube)
+            ics = mockgen.ICs(self,cosmo,cube,fname=self.ID+'_'+str(seed)+'_Lbox-'+str(self.Lbox)+'_N-'+str(N)+'_proc-'+str(self.mpiproc))
             ics.writeics()
-        times = xglogutil.profiletime(None, 'write ICs', times, self.comm, self.mpiproc)
+            times = xglogutil.profiletime(None, 'write ICs', times, self.comm, self.mpiproc)
         if self.laststep == 'writeics':
             return 0
 
