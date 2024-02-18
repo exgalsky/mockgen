@@ -106,7 +106,6 @@ class ICs:
 
         qx, qy, qz = jnp.meshgrid(q1d,q1dy,q1d,indexing='ij')
 
-        print(jnp.shape(qx),jnp.shape(qy),jnp.shape(qz),jnp.shape(self.cube.s1x))
         x =  qx + D * self.cube.s1x + b0 * D**2 * self.cube.s2x
         y =  qy + D * self.cube.s1y + b0 * D**2 * self.cube.s2y
         z =  qz + D * self.cube.s1z + b0 * D**2 * self.cube.s2z
