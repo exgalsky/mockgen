@@ -74,7 +74,7 @@ class ICs:
         # with
         #   b0 := 3/7 * Omegam_m^(-1/143)
         # and peculear velocity is
-        #   v(q) = a * dq/dt
+        #   v(q) = a * dx/dt
         #        = a * [ dD/dt * S^(1) + 2 * b0 * D * dD/dt * S^(2) ]
         #        = a * dD/dt * [ S^(1) + 2 * b0 * D * S^(2) ]
         #        = a * f * H * [ S^(1) + 2 * b0 * D * S^(2) ]
