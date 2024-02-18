@@ -73,7 +73,7 @@ class ICs:
         #   x(q) = q + D * S^(1) + b0 * D**2 * S^(2)
         # with
         #   b0 := 3/7 * Omegam_m^(-1/143)
-        # and peculear velocity is
+        # and peculiar velocity is
         #   v(q) = a * dx/dt
         #        = a * [ dD/dt * S^(1) + 2 * b0 * D * dD/dt * S^(2) ]
         #        = a * dD/dt * [ S^(1) + 2 * b0 * D * S^(2) ]
