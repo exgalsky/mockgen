@@ -12,7 +12,8 @@ class ICs:
 
     def writenyx(self,x,y,z,vx,vy,vz,mass):
 
-    # Nyx format:
+    # Nyx format
+    # see https://amrex-astro.github.io/Nyx/docs_html/ICs.html#start-from-a-binary-file
     #   fwrite(&npart, sizeof(long), 1, outFile);
     #   fwrite(&DM, sizeof(int), 1, outFile); <-- DM=3 for number of dimensions
     #   fwrite(&NX, sizeof(int), 1, outFile); <-- NX=0 for number of extra fields
