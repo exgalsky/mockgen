@@ -5,6 +5,7 @@ import mockgen.defaults as mgd
 import xgcosmo.cosmology as xgc
 import xgutil.log_util as xglogutil
 import xgutil.backend  as xgback
+import jax
 
 class Sky:
     '''Sky'''
@@ -24,15 +25,18 @@ class Sky:
         self.h        = kwargs.get(       'h',mgd.h)
         self.omegam   = kwargs.get(  'omegam',mgd.omegam)
 
-        from mpi4py import MPI
+        os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
+        os.environ["XLA_PYTHON_CLIENT_ALLOCATOR"] = "platform"
+
+        jax.distributed.initialize()
+
+        self.comm    = None
+        self.nproc   = jax.device_count()
+        self.mpiproc = jax.process_index()
+        self.task_tag = "JAX process "+str(self.mpiproc)
 
         self.parallel = False
-        self.nproc    = MPI.COMM_WORLD.Get_size()
-        self.mpiproc  = MPI.COMM_WORLD.Get_rank()
-        self.comm     = MPI.COMM_WORLD
-        self.task_tag = "MPI process "+str(self.mpiproc)
-
-        if MPI.COMM_WORLD.Get_size() > 1: self.parallel = True
+        if self.nproc > 1: self.parallel = True
 
     def get_power_array(self,cosmo_wsp):
         import numpy as np
@@ -44,7 +48,6 @@ class Sky:
         return result
 
     def run(self, **kwargs):
-        import jax
         import lpt
         from time import time
         times={'t0' : time()}
@@ -52,30 +55,35 @@ class Sky:
         if not self.parallel:
             cube = lpt.Cube(N=self.N,Lbox=self.Lbox,partype=None)
         else:
-            jax.distributed.initialize()
             cube = lpt.Cube(N=self.N,Lbox=self.Lbox)
+
         if self.laststep == 'init':
             return 0
-        
+
+        backend = xgback.Backend(force_no_gpu=True,force_no_mpi=True,logging_level=-logging.ERROR)
+        times = xglogutil.profiletime(None, 'backend', times, self.comm, self.mpiproc)
+        cosmo_wsp = xgc.cosmology(backend, h=self.h, Omega_m=self.omegam, cosmo_backend='CAMB') # for background expansion consistent with websky
+        times = xglogutil.profiletime(None, 'cosmology', times, self.comm, self.mpiproc)
+
         err = 0
         seeds = range(self.seed,self.seed+self.Niter)
         i = 0
         for seed in seeds:
             if i==1:
                 times={'t0' : time()}
-            err += self.generatesky(seed,cube,times)
+            err += self.generatesky(seed,cube,times,cosmo_wsp)
             i += 1
         xglogutil.summarizetime(None,times,self.comm, self.mpiproc)
         
         return err
 
-    def generatesky(self, seed, cube, times, **kwargs):
+    def generatesky(self, seed, cube, times, cosmo_wsp,**kwargs):
         from time import time
         import datetime
 
         import jax
+        import jax.numpy as jnp
         import lpt
-        from xgfield import fieldsky
         jax.config.update("jax_enable_x64", True)
 
         import logging
@@ -95,9 +103,8 @@ class Sky:
             logging.root.removeHandler(handler)
 
         #### NOISE CONVOLUTION TO OBTAIN DELTA
-        backend = xgback.Backend(force_no_gpu=True,force_no_mpi=True,logging_level=-logging.ERROR)
-        cosmo_wsp = xgc.cosmology(backend, h=self.h, Omega_m=self.omegam, cosmo_backend='CAMB') # for background expansion consistent with websky
         pofk = self.get_power_array(cosmo_wsp)
+        times = xglogutil.profiletime(None, 'get_power_array', times, self.comm, self.mpiproc)
         delta = cube.noise2delta(delta,pofk)
         times = xglogutil.profiletime(None, 'noise convolution', times, self.comm, self.mpiproc)
         if self.laststep == 'convolution':
@@ -116,6 +123,7 @@ class Sky:
         for handler in logging.root.handlers[:]:
             logging.root.removeHandler(handler)
 
+        from xgfield import fieldsky
         lptsky = fieldsky.FieldSky(ID = self.ID+'_'+str(seed),
                                    N  = self.N,
                                  Lbox = self.Lbox,
