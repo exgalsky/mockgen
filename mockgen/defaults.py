@@ -8,6 +8,7 @@ Nside    = 1024
 nlpt     = 2
 laststep = "all"
 icw      = False
+lcw      = False
 gpu      = True
 mpi      = True
 omegam   = 0.31

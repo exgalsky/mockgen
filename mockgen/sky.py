@@ -21,6 +21,7 @@ class Sky:
         self.laststep = kwargs.get('laststep',mgd.laststep)
         self.Nside    = kwargs.get(   'Nside',mgd.Nside)
         self.icw      = kwargs.get(     'icw',mgd.icw)
+        self.lcw      = kwargs.get(     'lcw',mgd.lcw)
         self.nlpt     = kwargs.get(    'nlpt',mgd.nlpt)
         self.gpu      = kwargs.get(     'gpu',mgd.gpu)
         self.mpi      = kwargs.get(     'mpi',mgd.mpi)
@@ -116,9 +117,15 @@ class Sky:
 
         #### WRITE INITIAL CONDITIONS
         if self.icw:
-            ics = mockgen.ICs(self,cosmo,cube,fname=self.ID+'_'+str(seed)+'_Lbox-'+str(self.Lbox)+'_N-'+str(N)+'_proc-'+str(self.mpiproc))
+            ics = mockgen.ICs(self,cosmo,cube,fname=self.ID+'_'+str(seed)+'_Lbox-'+str(self.Lbox)+'_N-'+str(self.N)+'_proc-'+str(self.mpiproc))
             ics.writeics()
             times = xglogutil.profiletime(None, 'write ICs', times, self.comm, self.mpiproc)
+        
+        if self.lcw:
+            ics = mockgen.ICs(self,cosmo,cube,fname=self.ID+'_'+str(seed)+'_Lbox-'+str(self.Lbox)+'_N-'+str(self.N)+'_lightcone_proc-'+str(self.mpiproc))
+            ics.lightcone()
+            times = xglogutil.profiletime(None, 'write lightcone grid', times, self.comm, self.mpiproc)
+
         if self.laststep == 'writeics':
             return 0
 
