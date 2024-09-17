@@ -76,8 +76,6 @@ class ICs:
         ndim  = 3
         nx    = 4
 
-        mass = np.repeat(mass, npart)
-
         np.asarray([npart],dtype=   'long').tofile(fid)
         np.asarray( [ndim],dtype=  'int32').tofile(fid)
         np.asarray(   [nx],dtype=  'int32').tofile(fid)
@@ -103,6 +101,7 @@ class ICs:
 
         H = 100 * h * jnp.sqrt(omegam*(1+z)**3+1-omegam) # flat universe with negligible radiation
 
+        print("Computing and writing ICs ---->")
         print("Cosmology parameters of interest:")
         print("h = ", cosmo.params['h'])
         print("Omega_m = ", cosmo.params['Omega_m'])
@@ -175,6 +174,7 @@ class ICs:
         Nslab  = N // sky.nproc
         j0     = sky.mpiproc * Nslab
 
+        print("Computing and writing lightcones ---->")
         print("Cosmology parameters of interest:")
         print("h = ", cosmo.params['h'])
         print("Omega_m = ", cosmo.params['Omega_m'])
@@ -218,9 +218,9 @@ class ICs:
         b0 = 3/7 * omegam**(-1/143)
 
         # Compute Euclidean positions of the particles
-        x =  qx + D * self.cube.s1x + b0 * D**2 * self.cube.s2x
-        y =  qy + D * self.cube.s1y + b0 * D**2 * self.cube.s2y
-        z =  qz + D * self.cube.s1z + b0 * D**2 * self.cube.s2z
+        x =  qx + D * self.cube.s1x.ravel() + b0 * D**2 * self.cube.s2x.ravel()
+        y =  qy + D * self.cube.s1y.ravel() + b0 * D**2 * self.cube.s2y.ravel()
+        z =  qz + D * self.cube.s1z.ravel() + b0 * D**2 * self.cube.s2z.ravel()
 
         # write the xyz coordinates of the particles to file
         if self.format == 'nyx':
