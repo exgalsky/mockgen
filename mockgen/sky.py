@@ -24,6 +24,7 @@ class Sky:
         self.mpi      = kwargs.get(     'mpi',mgd.mpi)
         self.h        = kwargs.get(       'h',mgd.h)
         self.omegam   = kwargs.get(  'omegam',mgd.omegam)
+        self.lptw     = kwargs.get(    'lptw',mgd.lptw)
 
         os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
         os.environ["XLA_PYTHON_CLIENT_ALLOCATOR"] = "platform"
@@ -37,6 +38,9 @@ class Sky:
 
         self.parallel = False
         if self.nproc > 1: self.parallel = True
+
+        if self.mpiproc == 0:
+            xglogutil.parprint(f'\nSky class initialized running on {self.nproc} GPUs')
 
     def get_power_array(self,cosmo_wsp):
         import numpy as np
@@ -53,17 +57,15 @@ class Sky:
         times={'t0' : time()}
 
         if not self.parallel:
-            cube = lpt.Cube(N=self.N,Lbox=self.Lbox,partype=None)
+            cube = lpt.Cube(N=self.N,Lbox=self.Lbox,nlpt=self.nlpt,partype=None)
         else:
-            cube = lpt.Cube(N=self.N,Lbox=self.Lbox)
+            cube = lpt.Cube(N=self.N,Lbox=self.Lbox,nlpt=self.nlpt)
 
         if self.laststep == 'init':
             return 0
 
         backend = xgback.Backend(force_no_gpu=True,force_no_mpi=True,logging_level=-logging.ERROR)
-        times = xglogutil.profiletime(None, 'backend', times, self.comm, self.mpiproc)
         cosmo_wsp = xgc.cosmology(backend, h=self.h, Omega_m=self.omegam, cosmo_backend='CAMB') # for background expansion consistent with websky
-        times = xglogutil.profiletime(None, 'cosmology', times, self.comm, self.mpiproc)
 
         err = 0
         seeds = range(self.seed,self.seed+self.Niter)
@@ -116,7 +118,11 @@ class Sky:
         #### LPT DISPLACEMENTS FROM DENSITY CONTRAST
         if self.nlpt > 0:
             cube.slpt(infield=self.input,delta=delta) # s1 and s2 in cube.[s1x,s1y,s1z,s2x,s2y,s2z]
-        times = xglogutil.profiletime(None, '2LPT', times, self.comm, self.mpiproc)
+            times = xglogutil.profiletime(None, '2LPT', times, self.comm, self.mpiproc)
+            if self.lptw:
+                fname=f'{self.ID}-{seed}_{self.nlpt}lpt'
+                if self.nproc > 1: fname=fname+f'_slab{self.mpiproc}'
+                cube.save_displacements(fname)
         if self.laststep == 'lpt':
             return 0
 

@@ -21,8 +21,9 @@ def main():
     parser.add_argument('--Nside',    default=mgd.Nside, help=f'healpix Nside [{mgd.Nside}]',    type=int)
     parser.add_argument('--nlpt',     default=mgd.nlpt,  help=f'lpt order [{mgd.nlpt}]',         type=int)
     parser.add_argument('--laststep', default=mgd.laststep, help=f'input type [{mgd.laststep}]', type=str)
-    parser.add_argument('--gpu',      default=mgd.gpu,   help=f'use GPU [{mgd.gpu}]', action=argparse.BooleanOptionalAction)
-    parser.add_argument('--mpi',      default=mgd.mpi,   help=f'use MPI [{mgd.mpi}]', action=argparse.BooleanOptionalAction)
+    parser.add_argument('--gpu',      default=mgd.gpu,   help=f'use GPU [{mgd.gpu}]',   action=argparse.BooleanOptionalAction)
+    parser.add_argument('--mpi',      default=mgd.mpi,   help=f'use MPI [{mgd.mpi}]',   action=argparse.BooleanOptionalAction)
+    parser.add_argument('--lptw',     default=mgd.lptw,  help=f'write LPT [{mgd.lptw}]',action=argparse.BooleanOptionalAction)
 
     args = parser.parse_args()
 
@@ -36,7 +37,8 @@ def main():
                        Nside = args.Nside,
                         nlpt = args.nlpt,
                          gpu = args.gpu,
-                         mpi = args.mpi)
+                         mpi = args.mpi,
+                        lptw = args.lptw)
 
     errcount += mocksky.run()
 

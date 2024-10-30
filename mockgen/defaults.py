@@ -11,3 +11,4 @@ gpu      = True
 mpi      = True
 omegam   = 0.31
 h        = 0.68
+lptw     = False
