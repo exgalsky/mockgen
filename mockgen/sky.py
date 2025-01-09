@@ -1,6 +1,7 @@
 import sys
 import os
 import logging
+import mockgen
 import mockgen.defaults as mgd
 import xgcosmo.cosmology as xgc
 import xgutil.log_util as xglogutil
@@ -16,8 +17,11 @@ class Sky:
         self.Niter    = kwargs.get(   'Niter',mgd.Niter)
         self.input    = kwargs.get(   'input',mgd.input)
         self.Lbox     = kwargs.get(    'Lbox',mgd.Lbox)
+        self.zInit    = kwargs.get(   'zInit',mgd.zInit)
         self.laststep = kwargs.get('laststep',mgd.laststep)
         self.Nside    = kwargs.get(   'Nside',mgd.Nside)
+        self.icw      = kwargs.get(     'icw',mgd.icw)
+        self.lcw      = kwargs.get(     'lcw',mgd.lcw)
         self.nlpt     = kwargs.get(    'nlpt',mgd.nlpt)
         self.gpu      = kwargs.get(     'gpu',mgd.gpu)
         self.mpi      = kwargs.get(     'mpi',mgd.mpi)
@@ -34,10 +38,10 @@ class Sky:
 
         if MPI.COMM_WORLD.Get_size() > 1: self.parallel = True
 
-    def get_power_array(self,cosmo_wsp):
+    def get_power_array(self,cosmo):
         import numpy as np
         k = np.logspace(-3,1,1000)
-        pk = cosmo_wsp.matter_power(k)
+        pk = cosmo.matter_power(k)
         pk /= self.h**3 # convert power spectrum units from (Mpc/h)^3 to Mpc^3
         k  *= self.h    # convert wavenumber units from h/Mpc to 1/Mpc
         result = np.asarray([k,pk])
@@ -96,8 +100,8 @@ class Sky:
 
         #### NOISE CONVOLUTION TO OBTAIN DELTA
         backend = xgback.Backend(force_no_gpu=True,force_no_mpi=True,logging_level=-logging.ERROR)
-        cosmo_wsp = xgc.cosmology(backend, h=self.h, Omega_m=self.omegam, cosmo_backend='CAMB') # for background expansion consistent with websky
-        pofk = self.get_power_array(cosmo_wsp)
+        cosmo = xgc.cosmology(backend, h=self.h, Omega_m=self.omegam, cosmo_backend='CAMB') # for background expansion consistent with websky
+        pofk = self.get_power_array(cosmo)
         delta = cube.noise2delta(delta,pofk)
         times = xglogutil.profiletime(None, 'noise convolution', times, self.comm, self.mpiproc)
         if self.laststep == 'convolution':
@@ -110,12 +114,25 @@ class Sky:
         if self.nlpt > 0:
             cube.slpt(infield=self.input,delta=delta) # s1 and s2 in cube.[s1x,s1y,s1z,s2x,s2y,s2z]
         times = xglogutil.profiletime(None, '2LPT', times, self.comm, self.mpiproc)
-        if self.laststep == 'lpt':
+
+        #### WRITE INITIAL CONDITIONS
+        if self.icw:
+            ics = mockgen.ICs(self,cosmo,cube,fname=self.ID+'_'+str(seed)+'_Lbox-'+str(self.Lbox)+'_N-'+str(self.N)+'_proc-'+str(self.mpiproc))
+            ics.writeics()
+            times = xglogutil.profiletime(None, 'write ICs', times, self.comm, self.mpiproc)
+        
+        if self.lcw:
+            ics = mockgen.ICs(self,cosmo,cube,fname=self.ID+'_'+str(seed)+'_Lbox-'+str(self.Lbox)+'_N-'+str(self.N)+'_lightcone_proc-'+str(self.mpiproc))
+            ics.lightcone()
+            times = xglogutil.profiletime(None, 'write lightcone grid', times, self.comm, self.mpiproc)
+
+        if self.laststep == 'writeics':
             return 0
 
         for handler in logging.root.handlers[:]:
             logging.root.removeHandler(handler)
 
+        #### GENERATE MOCK SKY DATA
         lptsky = fieldsky.FieldSky(ID = self.ID+'_'+str(seed),
                                    N  = self.N,
                                  Lbox = self.Lbox,
@@ -125,7 +142,7 @@ class Sky:
                                   gpu = self.gpu,
                                   mpi = self.mpi,
                                  cube = cube,
-                                 cwsp = cosmo_wsp)
+                                 cwsp = cosmo)
 
         lptsky.generate()
         times = xglogutil.profiletime(None, 'field mapping', times, self.comm, self.mpiproc)
