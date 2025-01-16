@@ -91,15 +91,15 @@ class ICs:
         h      = cosmo.params['h']
         omegam = cosmo.params['Omega_m']
 
-        rho   = 2.775e11 * omegam * h**2
+        rho   = 2.77536627e11 * omegam * h**2  # rho_c = 2.77536627e11 h^2 Msun/Mpc^3 at z=0
         N     = sky.N
         Lbox  = sky.Lbox
-        z     = sky.zInit
-        a     = 1 / (1+z)
+        z_ini = sky.zInit
+        a     = 1 / (1+z_ini)
         Nslab = N // sky.nproc
         j0    = sky.mpiproc * Nslab
 
-        H = 100 * h * jnp.sqrt(omegam*(1+z)**3+1-omegam) # flat universe with negligible radiation
+        H = self.cosmo.Hubble_H(z_ini) #100 * h * jnp.sqrt(omegam*(1+z)**3+1-omegam) # flat universe with negligible radiation
 
         print("Computing and writing ICs ---->")
         print("Cosmology parameters of interest:")
@@ -117,13 +117,16 @@ class ICs:
         #   v(q) = a * dx/dt
         #        = a * [ dD/dt * S^(1) + 2 * b0 * D * dD/dt * S^(2) ]
         #        = a * dD/dt * [ S^(1) + 2 * b0 * D * S^(2) ]
-        #        = a * f * H * [ S^(1) + 2 * b0 * D * S^(2) ]
+        #        = a * f * H * [ D *S^(1) + 2 * b0 * D**2* S^(2) ]
         # where
         #   f := dlnD/dlna (= 1 for z>>1) 
 
         f = 1 # note we are assuming z>>1 here for the ICs!!!
 
-        D  = cosmo.growth_factor_D(z)
+        D  = cosmo.growth_factor_D(z_ini)
+        
+        print("Growth factor = ", D)
+        
         b0 = 3/7 * omegam**(-1/143)
 
         mass = rho * Lbox**3 / N**3
@@ -146,16 +149,16 @@ class ICs:
 
         qx, qy, qz = jnp.meshgrid(q1d,q1dy,q1d,indexing='ij')
 
-        x =  qx + D * self.cube.s1x + b0 * D**2 * self.cube.s2x
-        y =  qy + D * self.cube.s1y + b0 * D**2 * self.cube.s2y
-        z =  qz + D * self.cube.s1z + b0 * D**2 * self.cube.s2z
+        Xx =  qx + D * self.cube.s1x + b0 * D**2 * self.cube.s2x
+        Xy =  qy + D * self.cube.s1y + b0 * D**2 * self.cube.s2y
+        Xz =  qz + D * self.cube.s1z + b0 * D**2 * self.cube.s2z
 
-        vx = a * f * H * (self.cube.s1x + 2 * b0 * D * self.cube.s2x)
-        vy = a * f * H * (self.cube.s1y + 2 * b0 * D * self.cube.s2y)
-        vz = a * f * H * (self.cube.s1z + 2 * b0 * D * self.cube.s2z)
+        vx = a * f * H * (D * self.cube.s1x + 2 * b0 * D**2 * self.cube.s2x)
+        vy = a * f * H * (D * self.cube.s1y + 2 * b0 * D**2 * self.cube.s2y)
+        vz = a * f * H * (D * self.cube.s1z + 2 * b0 * D**2 * self.cube.s2z)
 
         if self.format == 'nyx':
-            self.writenyx(x,y,z,vx,vy,vz,mass)
+            self.writenyx(Xx,Xy,Xz,vx,vy,vz,mass)
 
         return
 
@@ -218,13 +221,13 @@ class ICs:
         b0 = 3/7 * omegam**(-1/143)
 
         # Compute Euclidean positions of the particles
-        x =  qx + D * self.cube.s1x.ravel() + b0 * D**2 * self.cube.s2x.ravel()
-        y =  qy + D * self.cube.s1y.ravel() + b0 * D**2 * self.cube.s2y.ravel()
-        z =  qz + D * self.cube.s1z.ravel() + b0 * D**2 * self.cube.s2z.ravel()
+        Xx =  qx + D * self.cube.s1x.ravel() + b0 * D**2 * self.cube.s2x.ravel()
+        Xy =  qy + D * self.cube.s1y.ravel() + b0 * D**2 * self.cube.s2y.ravel()
+        Xz =  qz + D * self.cube.s1z.ravel() + b0 * D**2 * self.cube.s2z.ravel()
 
         # write the xyz coordinates of the particles to file
         if self.format == 'nyx':
-            self.write_lc(x,y,z)
+            self.write_lc(Xx,Xy,Xz)
 
         return 
         
